@@ -1,0 +1,22 @@
+# Data
+data/raw/
+data/processed/
+*.pcap
+*.csv
+
+# Models
+*.pkl
+*.pt
+*.joblib
+
+# Environment
+.env
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# MLflow
+mlruns/
+
+# Jupyter
+.ipynb_checkpoints/
