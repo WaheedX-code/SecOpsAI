@@ -1,0 +1,34 @@
+[
+  {
+    "attack": "HopSkipJump",
+    "f1_clean": 1.0,
+    "f1_adversarial": 1.0,
+    "degradation": 0.0
+  },
+  {
+    "attack": "ZOO",
+    "f1_clean": 1.0,
+    "f1_adversarial": 0.3095,
+    "degradation": 0.6905
+  },
+  {
+    "attack": "Boundary",
+    "f1_clean": 1.0,
+    "f1_adversarial": 1.0,
+    "degradation": 0.0
+  },
+  {
+    "attack": "DecisionTree",
+    "f1_clean": null,
+    "f1_adversarial": null,
+    "degradation": null,
+    "error": "DecisionTreeAttack requires an estimator derived from <class 'art.estimators.classification.scikitlearn.ScikitlearnDecisionTreeClassifier'>, the provided classifier is an instance of <class 'art.estimators.classification.xgboost.XGBoostClassifier'> and is derived from (<class 'art.estimators.classification.classifier.ClassifierDecisionTree'>,)."
+  },
+  {
+    "attack": "SquareAttack",
+    "f1_clean": null,
+    "f1_adversarial": null,
+    "degradation": null,
+    "error": "SquareAttack requires an estimator derived from <class 'art.estimators.estimator.BaseEstimator'> and <class 'art.estimators.estimator.NeuralNetworkMixin'>, the provided classifier is an instance of <class 'art.estimators.classification.xgboost.XGBoostClassifier'> and is derived from (<class 'art.estimators.classification.classifier.ClassifierDecisionTree'>,)."
+  }
+]

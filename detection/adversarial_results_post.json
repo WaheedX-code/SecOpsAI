@@ -1,0 +1,20 @@
+[
+  {
+    "attack": "HopSkipJump_hardened",
+    "f1_clean": 0.3265,
+    "f1_adversarial": 0.3265,
+    "degradation": 0.0
+  },
+  {
+    "attack": "ZOO_hardened",
+    "f1_clean": 0.4915,
+    "f1_adversarial": 0.4915,
+    "degradation": 0.0
+  },
+  {
+    "attack": "Boundary_hardened",
+    "f1_clean": 0.4915,
+    "f1_adversarial": 0.4915,
+    "degradation": 0.0
+  }
+]
