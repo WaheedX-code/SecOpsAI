@@ -1,0 +1,110 @@
+[
+  {
+    "feature": "Bwd Packet Length Min",
+    "importance": 0.187848
+  },
+  {
+    "feature": "Idle Mean",
+    "importance": 0.112263
+  },
+  {
+    "feature": "ACK Flag Count",
+    "importance": 0.077899
+  },
+  {
+    "feature": "Bwd Header Length",
+    "importance": 0.074985
+  },
+  {
+    "feature": "Bwd Packet Length Mean",
+    "importance": 0.063448
+  },
+  {
+    "feature": "Fwd Packet Length Std",
+    "importance": 0.05419
+  },
+  {
+    "feature": "PSH Flag Count",
+    "importance": 0.050654
+  },
+  {
+    "feature": "Bwd Packet Length Max",
+    "importance": 0.048708
+  },
+  {
+    "feature": "Fwd Packet Length Max",
+    "importance": 0.04795
+  },
+  {
+    "feature": "Total Length of Fwd Packets",
+    "importance": 0.035168
+  },
+  {
+    "feature": "Active Mean",
+    "importance": 0.028855
+  },
+  {
+    "feature": "Fwd Packet Length Mean",
+    "importance": 0.027331
+  },
+  {
+    "feature": "Fwd Packet Length Min",
+    "importance": 0.026192
+  },
+  {
+    "feature": "Subflow Fwd Bytes",
+    "importance": 0.024061
+  },
+  {
+    "feature": "Fwd Header Length",
+    "importance": 0.02288
+  },
+  {
+    "feature": "Flow Bytes/s",
+    "importance": 0.019974
+  },
+  {
+    "feature": "FIN Flag Count",
+    "importance": 0.01489
+  },
+  {
+    "feature": "Flow Duration",
+    "importance": 0.011959
+  },
+  {
+    "feature": "Flow IAT Max",
+    "importance": 0.011589
+  },
+  {
+    "feature": "Fwd IAT Std",
+    "importance": 0.0115
+  },
+  {
+    "feature": "Total Fwd Packets",
+    "importance": 0.011164
+  },
+  {
+    "feature": "Bwd IAT Mean",
+    "importance": 0.009853
+  },
+  {
+    "feature": "Flow IAT Std",
+    "importance": 0.008729
+  },
+  {
+    "feature": "Fwd IAT Mean",
+    "importance": 0.005854
+  },
+  {
+    "feature": "Flow Packets/s",
+    "importance": 0.005369
+  },
+  {
+    "feature": "Flow IAT Mean",
+    "importance": 0.004438
+  },
+  {
+    "feature": "Flow IAT Min",
+    "importance": 0.002248
+  }
+]
