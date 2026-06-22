@@ -1,8 +1,8 @@
 ```mermaid
 flowchart TB
     %% External Actors
-    ATTACKER(["🔴 Threat Actor\n(C2, Lateral Movement,\nDNS Tunnel, Exfil)"])
-    ANALYST(["👤 Security Analyst\n(Reviews & Responds)"])
+    ATTACKER(["Threat Actor\n(C2, Lateral Movement,\nDNS Tunnel, Exfil)"])
+    ANALYST(["Security Analyst\n(Reviews & Responds)"])
 
     %% External Systems
     VT["VirusTotal\n(Threat Enrichment)"]
@@ -12,7 +12,7 @@ flowchart TB
     CICD["GitHub Actions\n(CI/CD)"]
 
     %% Trust Boundary
-    subgraph SECOPSAI ["⬛ SecOpsAI Platform (Trust Boundary)"]
+    subgraph SECOPSAI ["SecOpsAI Platform (Trust Boundary)"]
         INGEST["Telemetry Ingestion\n(Zeek / Suricata / PCAP)"]
         STREAM["Message Stream\n(Kafka / Redis)"]
         DETECT["ML Detection Engine\n(XGBoost + PyTorch)"]
