@@ -1,0 +1,7 @@
+{
+  "model": "rule_baseline",
+  "f1_macro": 0.1305,
+  "f1_weighted": 0.4985,
+  "precision_macro": 0.1369,
+  "recall_macro": 0.211
+}
