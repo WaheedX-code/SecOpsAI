@@ -1,0 +1,2 @@
+{"timestamp": "2026-06-23T10:01:42.404643", "event": "LOGIN_SUCCESS", "user": "analyst", "details": {"ip": "127.0.0.1"}, "audit_id": "872ceb16-63b6-4e50-b2aa-525df5b792b3"}
+{"timestamp": "2026-06-23T10:15:37.716636", "event": "DETECTION", "user": "analyst", "details": {"request_id": "1fe1b922-86b1-4ce3-a4fd-2e573324fe8b", "prediction": "Normal Traffic", "confidence": 0.998, "latency_ms": 72.92, "source_ip": "192.168.1.100"}, "audit_id": "e18260a3-532f-4081-a09d-6202b161ff46"}
