@@ -41,6 +41,57 @@ jobs:
             redis pytest httpx python-dotenv prometheus-client \
             adversarial-robustness-toolbox joblib
 
+      - name: Download sample dataset for CI
+        run: |
+          mkdir -p data/raw/cicids2017
+          python3 -c "
+          import pandas as pd
+          import numpy as np
+          # Generate synthetic dataset for CI testing
+          np.random.seed(42)
+          n = 10000
+          attack_types = ['Normal Traffic', 'DoS', 'DDoS', 'Port Scanning', 'Brute Force', 'Bots']
+          data = {
+              'Flow Duration': np.random.exponential(1000, n),
+              'Total Fwd Packets': np.random.poisson(10, n),
+              'Total Backward Packets': np.random.poisson(5, n),
+              'Total Length of Fwd Packets': np.random.exponential(500, n),
+              'Flow Bytes/s': np.random.exponential(10000, n),
+              'Flow Packets/s': np.random.exponential(100, n),
+              'Fwd Packet Length Max': np.random.exponential(200, n),
+              'Fwd Packet Length Min': np.random.exponential(20, n),
+              'Fwd Packet Length Mean': np.random.exponential(100, n),
+              'Fwd Packet Length Std': np.random.exponential(50, n),
+              'Bwd Packet Length Max': np.random.exponential(200, n),
+              'Bwd Packet Length Min': np.random.exponential(20, n),
+              'Bwd Packet Length Mean': np.random.exponential(100, n),
+              'Flow IAT Mean': np.random.exponential(500, n),
+              'Flow IAT Std': np.random.exponential(200, n),
+              'Flow IAT Max': np.random.exponential(1000, n),
+              'Flow IAT Min': np.random.exponential(100, n),
+              'Fwd IAT Mean': np.random.exponential(500, n),
+              'Fwd IAT Std': np.random.exponential(200, n),
+              'Bwd IAT Mean': np.random.exponential(500, n),
+              'FIN Flag Count': np.random.poisson(0.5, n),
+              'SYN Flag Count': np.random.poisson(0.5, n),
+              'RST Flag Count': np.random.poisson(0.1, n),
+              'PSH Flag Count': np.random.poisson(0.3, n),
+              'ACK Flag Count': np.random.poisson(2, n),
+              'Fwd Header Length': np.random.poisson(20, n),
+              'Bwd Header Length': np.random.poisson(20, n),
+              'Attack Type': np.random.choice(attack_types, n, p=[0.7,0.1,0.08,0.06,0.03,0.03])
+          }
+          df = pd.DataFrame(data)
+          df.to_csv('data/raw/cicids2017/cicids2017_cleaned.csv', index=False)
+          print(f'Generated {n} synthetic samples')
+          "
+
+      - name: Train baseline and ML model for CI
+        run: |
+          python detection/baseline.py
+          python detection/train.py
+
+
       - name: Run pipeline tests
         run: pytest tests/ -v --tb=short
 
@@ -138,7 +189,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Validate docker-compose
-        run: docker compose config
+        run: docker compose -f docker-compose.yml config
 
       - name: Build images
-        run: docker compose build --no-cache
+        run: docker compose -f docker-compose.yml build --no-cache

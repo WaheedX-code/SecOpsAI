@@ -24,22 +24,16 @@ security = HTTPBearer()
 
 @lru_cache(maxsize=1)
 def get_users() -> dict:
-    """
-    Load users from environment variables and hash passwords once at
-    first call. lru_cache ensures hashing only happens once — not at
-    import time, not on every request.
-    In production this queries PostgreSQL instead.
-    """
     return {
         "analyst": {
             "password": pwd_context.hash(
-                os.getenv("ANALYST_PASSWORD", "analyst123")
+                os.getenv("ANALYST_PASSWORD", "analyst123")[:72]
             ),
             "role": "analyst"
         },
         "admin": {
             "password": pwd_context.hash(
-                os.getenv("ADMIN_PASSWORD", "admin123")
+                os.getenv("ADMIN_PASSWORD", "admin123")[:72]
             ),
             "role": "admin"
         }
