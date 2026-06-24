@@ -1,0 +1,144 @@
+name: SecOpsAI CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Detection Regression Tests
+    runs-on: ubuntu-latest
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install pandas numpy scipy scikit-learn xgboost \
+            fastapi uvicorn pydantic python-jose passlib bcrypt \
+            redis pytest httpx python-dotenv prometheus-client \
+            adversarial-robustness-toolbox joblib
+
+      - name: Run pipeline tests
+        run: pytest tests/ -v --tb=short
+
+      - name: Run API integration tests
+        env:
+          JWT_SECRET_KEY: test-secret-key
+          REDIS_URL: redis://localhost:6379
+        run: pytest tests/integration/ -v --tb=short
+
+      - name: Check baseline metrics exist
+        run: |
+          python3 -c "
+          import json
+          with open('detection/baseline_metrics.json') as f:
+            m = json.load(f)
+          assert m['f1_macro'] > 0, 'Baseline F1 must be > 0'
+          print(f'Baseline F1: {m[\"f1_macro\"]}')
+          "
+
+      - name: Check ML beats baseline by 15%
+        run: |
+          python3 -c "
+          import json
+          with open('detection/baseline_metrics.json') as f:
+            baseline = json.load(f)
+          with open('detection/ml_metrics.json') as f:
+            ml = json.load(f)
+          improvement = ml['f1_macro'] - baseline['f1_macro']
+          target = 0.15
+          assert improvement >= target, f'ML improvement {improvement:.4f} < required {target}'
+          print(f'ML improvement: +{improvement:.4f} — PASSED')
+          "
+
+      - name: Validate threat model exists
+        run: |
+          test -f docs/threat-model/STRIDE.md || exit 1
+          echo "STRIDE threat model present"
+
+      - name: Validate ADR exists
+        run: |
+          test -f docs/architecture/ADR.md || exit 1
+          echo "ADR present"
+
+  security:
+    name: Security Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install security tools
+        run: pip install bandit safety
+
+      - name: Run Bandit security scan
+        run: |
+          bandit -r api/ detection/ ingestion/ response/ \
+            -x tests/ \
+            -ll \
+            --format json \
+            -o bandit-report.json || true
+          python3 -c "
+          import json
+          with open('bandit-report.json') as f:
+            report = json.load(f)
+          high = [i for i in report['results'] if i['issue_severity'] == 'HIGH']
+          if high:
+            for issue in high:
+              print(f'HIGH: {issue[\"issue_text\"]} — {issue[\"filename\"]}:{issue[\"line_number\"]}')
+            exit(1)
+          print(f'Security scan passed — 0 HIGH severity issues')
+          "
+
+      - name: Check for secrets in code
+        run: |
+          grep -rn "password\s*=\s*['\"][^'\"]\+['\"]" \
+            --include="*.py" \
+            --exclude-dir=".git" \
+            --exclude-dir="venv" \
+            --exclude-dir="tests" \
+            . || true
+          echo "Secret scan complete"
+
+  docker:
+    name: Docker Build Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate docker-compose
+        run: docker compose config
+
+      - name: Build images
+        run: docker compose build --no-cache
