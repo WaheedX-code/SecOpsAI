@@ -42,50 +42,65 @@ jobs:
             redis pytest httpx python-dotenv prometheus-client \
             adversarial-robustness-toolbox joblib
 
-
       - name: Download sample dataset for CI
         run: |
           mkdir -p data/raw/cicids2017
           python3 -c "
           import pandas as pd
           import numpy as np
-          # Generate synthetic dataset for CI testing
+
           np.random.seed(42)
-          n = 10000
-          attack_types = ['Normal Traffic', 'DoS', 'DDoS', 'Port Scanning', 'Brute Force', 'Bots']
-          data = {
-              'Flow Duration': np.random.exponential(1000, n),
-              'Total Fwd Packets': np.random.poisson(10, n),
-              'Total Backward Packets': np.random.poisson(5, n),
-              'Total Length of Fwd Packets': np.random.exponential(500, n),
-              'Flow Bytes/s': np.random.exponential(10000, n),
-              'Flow Packets/s': np.random.exponential(100, n),
-              'Fwd Packet Length Max': np.random.exponential(200, n),
-              'Fwd Packet Length Min': np.random.exponential(20, n),
-              'Fwd Packet Length Mean': np.random.exponential(100, n),
-              'Fwd Packet Length Std': np.random.exponential(50, n),
-              'Bwd Packet Length Max': np.random.exponential(200, n),
-              'Bwd Packet Length Min': np.random.exponential(20, n),
-              'Bwd Packet Length Mean': np.random.exponential(100, n),
-              'Flow IAT Mean': np.random.exponential(500, n),
-              'Flow IAT Std': np.random.exponential(200, n),
-              'Flow IAT Max': np.random.exponential(1000, n),
-              'Flow IAT Min': np.random.exponential(100, n),
-              'Fwd IAT Mean': np.random.exponential(500, n),
-              'Fwd IAT Std': np.random.exponential(200, n),
-              'Bwd IAT Mean': np.random.exponential(500, n),
-              'FIN Flag Count': np.random.poisson(0.5, n),
-              'SYN Flag Count': np.random.poisson(0.5, n),
-              'RST Flag Count': np.random.poisson(0.1, n),
-              'PSH Flag Count': np.random.poisson(0.3, n),
-              'ACK Flag Count': np.random.poisson(2, n),
-              'Fwd Header Length': np.random.poisson(20, n),
-              'Bwd Header Length': np.random.poisson(20, n),
-              'Attack Type': np.random.choice(attack_types, n, p=[0.7,0.1,0.08,0.06,0.03,0.03])
+          n_per_class = 1667
+
+          def make_class(n, flow_dur, fwd_pkts, bwd_pkts, flow_bytes, syn, ack, fin):
+              return {
+                  'Flow Duration': np.random.normal(flow_dur, flow_dur*0.1, n),
+                  'Total Fwd Packets': np.random.normal(fwd_pkts, 2, n).clip(0),
+                  'Total Backward Packets': np.random.normal(bwd_pkts, 2, n).clip(0),
+                  'Total Length of Fwd Packets': np.random.normal(flow_bytes, 50, n).clip(0),
+                  'Flow Bytes/s': np.random.normal(flow_bytes*10, 100, n).clip(0),
+                  'Flow Packets/s': np.random.normal(fwd_pkts*10, 10, n).clip(0),
+                  'Fwd Packet Length Max': np.random.normal(flow_bytes/2, 20, n).clip(0),
+                  'Fwd Packet Length Min': np.random.normal(flow_bytes/10, 5, n).clip(0),
+                  'Fwd Packet Length Mean': np.random.normal(flow_bytes/4, 10, n).clip(0),
+                  'Fwd Packet Length Std': np.random.normal(10, 2, n).clip(0),
+                  'Bwd Packet Length Max': np.random.normal(flow_bytes/3, 20, n).clip(0),
+                  'Bwd Packet Length Min': np.random.normal(flow_bytes/20, 5, n).clip(0),
+                  'Bwd Packet Length Mean': np.random.normal(flow_bytes/6, 10, n).clip(0),
+                  'Flow IAT Mean': np.random.normal(flow_dur/10, 10, n).clip(0),
+                  'Flow IAT Std': np.random.normal(flow_dur/20, 5, n).clip(0),
+                  'Flow IAT Max': np.random.normal(flow_dur/5, 20, n).clip(0),
+                  'Flow IAT Min': np.random.normal(1, 0.5, n).clip(0),
+                  'Fwd IAT Mean': np.random.normal(flow_dur/10, 10, n).clip(0),
+                  'Fwd IAT Std': np.random.normal(flow_dur/20, 5, n).clip(0),
+                  'Bwd IAT Mean': np.random.normal(flow_dur/10, 10, n).clip(0),
+                  'FIN Flag Count': np.random.poisson(fin, n),
+                  'SYN Flag Count': np.random.poisson(syn, n),
+                  'RST Flag Count': np.random.poisson(0.1, n),
+                  'PSH Flag Count': np.random.poisson(0.3, n),
+                  'ACK Flag Count': np.random.poisson(ack, n),
+                  'Fwd Header Length': np.random.poisson(20, n),
+                  'Bwd Header Length': np.random.poisson(20, n),
+              }
+
+          classes = {
+              'Normal Traffic': make_class(n_per_class, 1000, 10, 5,  500,  0.5, 2,   0.5),
+              'DoS':            make_class(n_per_class, 5000, 50, 2,  100,  0.1, 0.1, 0.1),
+              'DDoS':           make_class(n_per_class, 8000, 80, 1,  50,   2.0, 0.1, 0.1),
+              'Port Scanning':  make_class(n_per_class, 100,  2,  0,  20,   2.0, 0.1, 0.1),
+              'Brute Force':    make_class(n_per_class, 2000, 20, 15, 300,  5.0, 3.0, 0.1),
+              'Bots':           make_class(n_per_class, 3000, 15, 10, 400,  0.2, 4.0, 1.0),
           }
-          df = pd.DataFrame(data)
+
+          dfs = []
+          for label, features in classes.items():
+              df = pd.DataFrame(features)
+              df['Attack Type'] = label
+              dfs.append(df)
+
+          df = pd.concat(dfs, ignore_index=True).sample(frac=1, random_state=42)
           df.to_csv('data/raw/cicids2017/cicids2017_cleaned.csv', index=False)
-          print(f'Generated {n} synthetic samples')
+          print(f'Generated {len(df)} synthetic samples with distinct class signals')
           "
 
       - name: Train baseline and ML model for CI
@@ -104,23 +119,6 @@ jobs:
           REDIS_URL: redis://localhost:6379
           ANALYST_PASSWORD: ${{ secrets.ANALYST_PASSWORD }}
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
-
-      - name: Debug auth endpoint
-        env:
-          JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
-          ANALYST_PASSWORD: ${{ secrets.ANALYST_PASSWORD }}
-          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
-        run: |
-          cd ~/work/SecOpsAI/SecOpsAI
-          python3 -c "
-          import os, json
-          os.environ['ANALYST_PASSWORD'] = os.environ.get('ANALYST_PASSWORD', '')
-          os.environ['ADMIN_PASSWORD'] = os.environ.get('ADMIN_PASSWORD', '')
-          os.environ['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', '')
-          print('ANALYST_PASSWORD set:', bool(os.environ.get('ANALYST_PASSWORD')))
-          print('ADMIN_PASSWORD set:', bool(os.environ.get('ADMIN_PASSWORD')))
-          print('JWT_SECRET_KEY set:', bool(os.environ.get('JWT_SECRET_KEY')))
-          "
 
       - name: Run pipeline tests
         env:
