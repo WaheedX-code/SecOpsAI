@@ -11,17 +11,9 @@ from fastapi.testclient import TestClient
 @pytest.fixture
 def client():
     """Test client with mocked model and injected test users."""
-    from passlib.context import CryptContext
-    ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-    test_users = {
-        "analyst": {"password": ctx.hash("analyst123"), "role": "analyst"},
-        "admin": {"password": ctx.hash("admin123"), "role": "admin"}
-    }
-
-    # Reset cached users before each test
+    # Reset user cache so env vars are used
     import api.middleware as mw
-    mw._USERS = test_users
+    mw._USERS = None
 
     with patch("api.main.MODEL") as mock_model, \
          patch("api.main.SCALER") as mock_scaler, \
@@ -39,7 +31,6 @@ def client():
         with TestClient(app) as client:
             yield client
 
-        # Reset after test
         mw._USERS = None
 
 

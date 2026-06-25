@@ -42,18 +42,6 @@ jobs:
             redis pytest httpx python-dotenv prometheus-client \
             adversarial-robustness-toolbox joblib
 
-      - name: Debug bcrypt version
-        run: |
-          python3 -c "
-          import bcrypt, passlib
-          print('bcrypt version:', bcrypt.__version__)
-          print('passlib version:', passlib.__version__)
-          from passlib.context import CryptContext
-          ctx = CryptContext(schemes=['bcrypt'], deprecated='auto')
-          h = ctx.hash('test123')
-          print('Hash works:', h[:10])
-          print('Verify works:', ctx.verify('test123', h))
-          "
 
       - name: Download sample dataset for CI
         run: |
@@ -107,12 +95,19 @@ jobs:
 
 
       - name: Run pipeline tests
+        env:
+          JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+          REDIS_URL: redis://localhost:6379
+          ANALYST_PASSWORD: ${{ secrets.ANALYST_PASSWORD }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
         run: pytest tests/ -v --tb=short
 
       - name: Run API integration tests
         env:
-          JWT_SECRET_KEY: test-secret-key
+          JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
           REDIS_URL: redis://localhost:6379
+          ANALYST_PASSWORD: ${{ secrets.ANALYST_PASSWORD }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
         run: pytest tests/integration/ -v --tb=short
 
       - name: Check baseline metrics exist
