@@ -36,6 +36,7 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install bcrypt==4.0.1 passlib==1.7.4
           pip install pandas numpy scipy scikit-learn xgboost \
             fastapi uvicorn pydantic python-jose passlib bcrypt \
             redis pytest httpx python-dotenv prometheus-client \
