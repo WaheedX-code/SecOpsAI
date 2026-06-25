@@ -11,12 +11,26 @@ import numpy as np
 
 @pytest.fixture
 def client():
-    """Create test client with mocked model."""
+    """Create test client with mocked model and test users."""
+    from passlib.context import CryptContext
+    ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    mock_users = {
+        "analyst": {
+            "password": ctx.hash("analyst123"),
+            "role": "analyst"
+        },
+        "admin": {
+            "password": ctx.hash("admin123"),
+            "role": "admin"
+        }
+    }
+
     with patch("api.main.MODEL") as mock_model, \
          patch("api.main.SCALER") as mock_scaler, \
          patch("api.main.LABEL_ENCODER") as mock_le, \
          patch("api.main.FEATURES", ["Flow Duration", "Total Fwd Packets"]), \
-         patch("api.main.REDIS_CLIENT", None):
+         patch("api.main.REDIS_CLIENT", None), \
+         patch("api.middleware.get_users", return_value=mock_users):
 
         mock_model.predict.return_value = np.array([0])
         mock_model.predict_proba.return_value = np.array([[0.95, 0.05]])

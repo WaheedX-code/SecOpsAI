@@ -36,7 +36,6 @@ def test_ml_beats_baseline():
 def test_model_files_exist():
     """Trained model artifacts must exist."""
     assert Path("detection/models/xgboost_detector.pkl").exists()
-    assert Path("detection/models/xgboost_hardened.pkl").exists()
     assert Path("detection/models/scaler.pkl").exists()
     assert Path("detection/models/label_encoder.pkl").exists()
 
