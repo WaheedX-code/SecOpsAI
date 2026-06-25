@@ -9,11 +9,16 @@ from fastapi.testclient import TestClient
 
 
 @pytest.fixture
-def client():
-    """Test client with mocked model and injected test users."""
-    # Reset user cache so env vars are used
+def client(monkeypatch):
+    import os
     import api.middleware as mw
-    mw._USERS = None
+
+    # Force env vars directly — don't rely on GitHub secrets reaching os.getenv
+    monkeypatch.setenv("ANALYST_PASSWORD", os.environ["ANALYST_PASSWORD"])
+    monkeypatch.setenv("ADMIN_PASSWORD", os.environ["ADMIN_PASSWORD"])
+    monkeypatch.setenv("JWT_SECRET_KEY", os.environ["JWT_SECRET_KEY"])
+
+    mw.reset_users()  # reset cache AFTER env vars are confirmed
 
     with patch("api.main.MODEL") as mock_model, \
          patch("api.main.SCALER") as mock_scaler, \
@@ -31,8 +36,7 @@ def client():
         with TestClient(app) as client:
             yield client
 
-        mw._USERS = None
-
+    mw.reset_users()
 
 def test_health_check(client):
     resp = client.get("/health")
