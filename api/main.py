@@ -1,7 +1,5 @@
 """
 SecOpsAI — Production Detection API
-FastAPI service exposing ML detection engine.
-JWT auth, rate limiting, audit logging, OpenAPI docs.
 """
 
 import json
@@ -62,11 +60,18 @@ SCALER = None
 LABEL_ENCODER = None
 FEATURES = None
 REDIS_CLIENT = None
+_TEST_MODE = False
 
 
 @app.on_event("startup")
 async def startup():
     global MODEL, SCALER, LABEL_ENCODER, FEATURES, REDIS_CLIENT
+
+    # In test mode, models may already be injected via patches, don't overwrite
+    import api.main as self_module
+    if getattr(self_module, '_TEST_MODE', False):
+        logger.info("Test mode - skipping model load")
+        return
 
     logger.info("Loading model artifacts...")
     try:

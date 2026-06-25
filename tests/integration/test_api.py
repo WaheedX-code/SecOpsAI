@@ -12,19 +12,20 @@ from fastapi.testclient import TestClient
 def client(monkeypatch):
     import os
     import api.middleware as mw
+    import api.main as main_module
 
-    # Force env vars directly — don't rely on GitHub secrets reaching os.getenv
     monkeypatch.setenv("ANALYST_PASSWORD", os.environ["ANALYST_PASSWORD"])
     monkeypatch.setenv("ADMIN_PASSWORD", os.environ["ADMIN_PASSWORD"])
     monkeypatch.setenv("JWT_SECRET_KEY", os.environ["JWT_SECRET_KEY"])
 
-    mw.reset_users()  # reset cache AFTER env vars are confirmed
+    mw.reset_users()
 
     with patch("api.main.MODEL") as mock_model, \
          patch("api.main.SCALER") as mock_scaler, \
          patch("api.main.LABEL_ENCODER") as mock_le, \
          patch("api.main.FEATURES", ["Flow Duration", "Total Fwd Packets"]), \
-         patch("api.main.REDIS_CLIENT", None):
+         patch("api.main.REDIS_CLIENT", None) \
+         patch("api.main._TEST_MODE", True):
 
         mock_model.predict.return_value = np.array([0])
         mock_model.predict_proba.return_value = np.array([[0.95, 0.05]])
