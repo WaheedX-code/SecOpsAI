@@ -25,13 +25,22 @@ _USERS = None
 def get_users() -> dict:
     global _USERS
     if _USERS is None:
+        analyst_pw = os.getenv("ANALYST_PASSWORD")
+        admin_pw = os.getenv("ADMIN_PASSWORD")
+
+        if not analyst_pw or not admin_pw:
+            raise RuntimeError(
+                "ANALYST_PASSWORD and ADMIN_PASSWORD must be set. "
+                "Check your .env file or Github secrets."
+            )
+
         _USERS = {
             "analyst": {
-                "password": pwd_context.hash(os.getenv("ANALYST_PASSWORD", "analyst123")),
+                "password": pwd_context.hash(analyst_pw),
                 "role": "analyst"
             },
             "admin": {
-                "password": pwd_context.hash(os.getenv("ADMIN_PASSWORD", "admin123")),
+                "password": pwd_context.hash(admin_pw),
                 "role": "admin"
             }
         }

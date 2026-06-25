@@ -93,6 +93,17 @@ jobs:
           python detection/baseline.py
           python detection/train.py
 
+      - name: Verify required secrets are set
+        run: |
+          if [ -z "$JWT_SECRET_KEY" ]; then echo "ERROR: JWT_SECRET_KEY is empty"; exit 1; fi
+          if [ -z "$ANALYST_PASSWORD" ]; then echo "ERROR: ANALYST_PASSWORD is empty"; exit 1; fi
+          if [ -z "$ADMIN_PASSWORD" ]; then echo "ERROR: ADMIN_PASSWORD is empty"; exit 1; fi
+          echo "All required secrets present"
+        env:
+          JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+          REDIS_URL: redis://localhost:6379
+          ANALYST_PASSWORD: ${{ secrets.ANALYST_PASSWORD }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
 
       - name: Run pipeline tests
         env:
