@@ -23,6 +23,12 @@ from api.schemas import (
     PredictionRequest, PredictionResponse,
     HealthResponse, TokenRequest, TokenResponse
 )
+
+from api.metrics import (
+    detections_total, malicious_total, detection_by_type,
+    inference_latency, model_f1_score, metrics_endpoint
+)
+
 from api.middleware import (
     verify_token, create_token, require_admin, get_users, verify_password
 )
@@ -229,6 +235,13 @@ async def detect(
         logger.error(f"Inference error: {e}")
         raise HTTPException(status_code=500, detail="Inference failed")
 
+        # Record metrics
+        detections_total.inc()
+        inference_latency.observe(latency_ms)
+        detection_by_type.labels(threat_type=label).inc()
+        if is_malicious:
+            malicious_total.inc()
+
 
 @app.get("/model/info", tags=["Model"])
 async def model_info(token: dict = Security(verify_token)):
@@ -265,3 +278,8 @@ async def get_audit_logs(
         return {"logs": [json.loads(l) for l in lines]}
     except FileNotFoundError:
         return {"logs": []}
+
+@app.get("/metrics", tags=["System"])
+async def metrics():
+    """Prometheus metrics endpoint"""
+    return metrics_endpoint()
