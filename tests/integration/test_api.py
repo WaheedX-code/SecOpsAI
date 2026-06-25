@@ -25,7 +25,7 @@ def client(monkeypatch):
          patch("api.main.SCALER") as mock_scaler, \
          patch("api.main.LABEL_ENCODER") as mock_le, \
          patch("api.main.FEATURES", ["Flow Duration", "Total Fwd Packets"]), \
-         patch("api.main.REDIS_CLIENT", None) \
+         patch("api.main.REDIS_CLIENT", None):
 
         mock_model.predict.return_value = np.array([0])
         mock_model.predict_proba.return_value = np.array([[0.95, 0.05]])
