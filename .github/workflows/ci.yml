@@ -105,6 +105,23 @@ jobs:
           ANALYST_PASSWORD: ${{ secrets.ANALYST_PASSWORD }}
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
 
+      - name: Debug auth endpoint
+        env:
+          JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+          ANALYST_PASSWORD: ${{ secrets.ANALYST_PASSWORD }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+        run: |
+          cd ~/work/SecOpsAI/SecOpsAI
+          python3 -c "
+          import os, json
+          os.environ['ANALYST_PASSWORD'] = os.environ.get('ANALYST_PASSWORD', '')
+          os.environ['ADMIN_PASSWORD'] = os.environ.get('ADMIN_PASSWORD', '')
+          os.environ['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', '')
+          print('ANALYST_PASSWORD set:', bool(os.environ.get('ANALYST_PASSWORD')))
+          print('ADMIN_PASSWORD set:', bool(os.environ.get('ADMIN_PASSWORD')))
+          print('JWT_SECRET_KEY set:', bool(os.environ.get('JWT_SECRET_KEY')))
+          "
+
       - name: Run pipeline tests
         env:
           JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
