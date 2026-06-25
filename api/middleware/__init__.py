@@ -2,7 +2,6 @@ import os
 import uuid
 import logging
 from datetime import datetime, timedelta
-from functools import lru_cache
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -14,30 +13,35 @@ load_dotenv()
 
 logger = logging.getLogger("secopsai.auth")
 
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "change-in-prod")
+SECRET_KEY = os.getenv("JWT_SECRET_KEY", "secopsai-dev-secret-change-in-prod")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer()
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+# Users loaded lazily — never at import time
+_USERS = None
 
-@lru_cache(maxsize=1)
 def get_users() -> dict:
-    return {
-        "analyst": {
-            "password": pwd_context.hash(
-                os.getenv("ANALYST_PASSWORD", "analyst123")[:72]
-            ),
-            "role": "analyst"
-        },
-        "admin": {
-            "password": pwd_context.hash(
-                os.getenv("ADMIN_PASSWORD", "admin123")[:72]
-            ),
-            "role": "admin"
+    global _USERS
+    if _USERS is None:
+        _USERS = {
+            "analyst": {
+                "password": pwd_context.hash(os.getenv("ANALYST_PASSWORD", "analyst123")),
+                "role": "analyst"
+            },
+            "admin": {
+                "password": pwd_context.hash(os.getenv("ADMIN_PASSWORD", "admin123")),
+                "role": "admin"
+            }
         }
-    }
+    return _USERS
+
+
+def reset_users():
+    """Reset user cache — used in tests."""
+    global _USERS
+    _USERS = None
 
 
 def verify_password(plain: str, hashed: str) -> bool:
