@@ -1,3 +1,5 @@
+CREATE SCHEMA IF NOT EXISTS secopsai;
+
 CREATE TABLE IF NOT EXISTS secopsai.audit_logs (
     audit_id    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     timestamp   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
