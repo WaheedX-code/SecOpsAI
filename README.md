@@ -1,4 +1,8 @@
 # SecOpsAI
+![CI](https://github.com/WaheedX-code/SecOpsAI/actions/workflows/ci.yml/badge.svg)
+![Python](https://img.shields.io/badge/python-3.11-blue)
+![Docker](https://img.shields.io/badge/docker-compose-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
 
 A production-grade Security Operations Center (SOC) tool that ingests raw network flow data, runs it through a hardened ML model, exposes results via a secured REST API, and fires alerts through an automated response pipeline.
 
@@ -68,6 +72,16 @@ Get a token:
 curl -X POST http://localhost:8000/auth/token \
   -H "Content-Type: application/json" \
   -d '{"username": "admin", "password": "your_admin_password"}'
+```
+### Sample detection response
+```json
+{
+  "prediction": "DDoS",
+  "confidence": 0.97,
+  "alert_fired": true,
+  "containment": "auto-block triggered",
+  "audit_id": "a3f2c1d0-..."
+}
 ```
 
 Run a detection:
