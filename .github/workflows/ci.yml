@@ -21,6 +21,19 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+    postgres:
+      image: postgres:15-alpine
+      env:
+        POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+        PSOTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+        POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+      ports:
+        - 5432:5432
+      options: >-
+        --health-cmd "pg_isready -U secopsai"
+        --health-interval 10s
+        --health-timeout 5s
+        --health-retries 5
 
     steps:
       - name: Checkout code
@@ -40,7 +53,16 @@ jobs:
           pip install pandas numpy scipy scikit-learn xgboost \
             fastapi uvicorn pydantic python-jose passlib bcrypt \
             redis pytest httpx python-dotenv prometheus-client \
-            adversarial-robustness-toolbox joblib
+            adversarial-robustness-toolbox joblib psycopg2-binary
+
+      - name: Run database migrations
+        env:
+          PGPASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+        run: |
+          psql -h localhost \
+               -U ${{ secrets.POSTGRES_USER }} \
+               -d ${{ secrets.POSTGRES_DB }} \
+               -f db/migrations/001_audit_logs.sql
 
       - name: Download sample dataset for CI
         run: |
@@ -126,6 +148,10 @@ jobs:
           REDIS_URL: redis://localhost:6379
           ANALYST_PASSWORD: ${{ secrets.ANALYST_PASSWORD }}
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          PSOTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          POSTGRES_HOST: localhost
         run: pytest tests/ -v --tb=short
 
       - name: Run API integration tests
@@ -134,6 +160,10 @@ jobs:
           REDIS_URL: redis://localhost:6379
           ANALYST_PASSWORD: ${{ secrets.ANALYST_PASSWORD }}
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          PSOTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          POSTGRES_HOST: 
         run: pytest tests/integration/ -v --tb=short
 
       - name: Check baseline metrics exist
