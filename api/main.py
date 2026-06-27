@@ -17,6 +17,8 @@ from fastapi import FastAPI, HTTPException, Security, Request, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from api.audit import audit_log
+
 from api.schemas import (
     PredictionRequest, PredictionResponse,
     HealthResponse, TokenRequest, TokenResponse
@@ -123,26 +125,6 @@ def check_rate_limit(request: Request, max_requests: int = 60, window: int = 60)
     except Exception:
         pass  # Don't block requests if Redis fails
 
-
-# ─── Audit Logging ────────────────────────────────────────────────────────────
-
-def audit_log(event: str, user: str, details: dict):
-    """Structured audit log — every API action logged."""
-    entry = {
-        "timestamp": datetime.utcnow().isoformat(),
-        "event": event,
-        "user": user,
-        "details": details,
-        "audit_id": str(uuid.uuid4())
-    }
-    logger.info(f"AUDIT: {json.dumps(entry)}")
-
-    # In production this writes to PostgreSQL
-    # For now it writes to audit log file
-    with open("data/audit.log", "a") as f:
-        f.write(json.dumps(entry) + "\n")
-
-
 # ─── Routes ───────────────────────────────────────────────────────────────────
 
 @app.get("/health", response_model=HealthResponse, tags=["System"])
@@ -162,14 +144,14 @@ async def login(request: Request, body: TokenRequest):
 
     user = get_users().get(body.username)
     if not user or not verify_password(body.password, user["password"]):
-        audit_log("LOGIN_FAILED", body.username, {"ip": request.client.host})
+        audit_log("LOGIN_FAILED", username=body.username, ip_address=request.client.host, details={"ip": request.client.host})
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials"
         )
 
     token = create_token(body.username, user["role"])
-    audit_log("LOGIN_SUCCESS", body.username, {"ip": request.client.host})
+    audit_log("LOGIN_SUCCESS", username=body.username, ip_address=request.client.host, details={"ip": request.client.host})
     return TokenResponse(access_token=token)
 
 
@@ -219,7 +201,7 @@ async def detect(
         latency_ms = (time.time() - start) * 1000
         logger.info(f"Inference: {label} ({confidence:.3f}) in {latency_ms:.1f}ms")
 
-        audit_log("DETECTION", token["sub"], {
+        audit_log("DETECTION", username=token["sub"], ip_address=body.source_ip, details={
             "request_id": request_id,
             "prediction": label,
             "confidence": round(confidence, 4),
@@ -271,18 +253,61 @@ async def model_info(token: dict = Security(verify_token)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @app.get("/audit/logs", tags=["Admin"])
 async def get_audit_logs(
-    token: dict = Depends(require_admin)
+    limit: int = 50,
+    offset: int = 0,
+    event: str | None = None,
+    username: str | None = None,
+    token: dict = Depends(require_admin),
 ):
-    """Return recent audit logs — admin only."""
+    """Return audit logs from PostgreSQL — admin only. Falls back to flat file."""
+    from db.connection import get_db_conn
+
     try:
-        with open("data/audit.log") as f:
-            lines = f.readlines()[-50:]
-        return {"logs": [json.loads(l) for l in lines]}
-    except FileNotFoundError:
-        return {"logs": []}
+        with get_db_conn() as conn:
+            with conn.cursor() as cur:
+                filters, params = [], []
+                if event:
+                    filters.append("event = %s")
+                    params.append(event)
+                if username:
+                    filters.append("username = %s")
+                    params.append(username)
+
+                where = ("WHERE " + " AND ".join(filters)) if filters else ""
+                params += [limit, offset]
+
+                cur.execute(
+                    f"""
+                    SELECT audit_id, timestamp, event, username,
+                           ip_address, details
+                    FROM secopsai.audit_logs
+                    {where}
+                    ORDER BY timestamp DESC
+                    LIMIT %s OFFSET %s
+                    """,
+                    params,
+                )
+                rows = cur.fetchall()
+
+        return {"source": "postgresql", "count": len(rows), "logs": rows}
+
+    except Exception as exc:
+        logger.warning("PostgreSQL query failed, falling back to flat file: %s", exc)
+        try:
+            with open("data/audit.log") as f:
+                lines = f.readlines()
+            records = []
+            for line in lines:
+                try:
+                    records.append(json.loads(line))
+                except json.JSONDecodeError:
+                    continue
+            page = records[offset: offset + limit]
+            return {"source": "flat_file", "count": len(page), "logs": page}
+        except FileNotFoundError:
+            return {"source": "flat_file", "count": 0, "logs": []}
 
 @app.get("/metrics", tags=["System"])
 async def metrics():
