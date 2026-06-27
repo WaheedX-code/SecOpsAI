@@ -15,15 +15,22 @@ A production-grade Security Operations Center (SOC) tool that ingests raw networ
 
 ## Quick Start
 
-\```bash
+```bash
+# 1. Clone the repo
 git clone https://github.com/WaheedX-code/SecOpsAI.git
 cd SecOpsAI
+
+# 2. Set up environment
 cp .env.example .env
-nano .env
+nano .env  # Fill in required values
+
+# 3. Install dependencies and train model
 make setup
 make train
+
+# 4. Start all services
 make start
-\```
+```
 
 Services:
 - API: http://localhost:8000
@@ -37,64 +44,88 @@ Services:
 
 Required values in `.env`:
 
-\```env
+```env
 POSTGRES_PASSWORD=your_strong_password
 POSTGRES_USER=secopsai
 POSTGRES_DB=secopsai
 JWT_SECRET_KEY=your_long_random_string
 ADMIN_PASSWORD=your_admin_password
 ANALYST_PASSWORD=your_analyst_password
-\```
-
+```
+Optional Integrations (skip if not configured):
+```env
+VIRUSTOTAL_API_KEY=
+SHODAN_API_KEY=
+SLACK_WEBHOOK_URL=
+GRAFANA_PASSWORD=
+```
 ---
 
 ## API Usage
 
 Get a token:
-\```bash
+```bash
 curl -X POST http://localhost:8000/auth/token \
   -H "Content-Type: application/json" \
   -d '{"username": "admin", "password": "your_admin_password"}'
-\```
+```
 
 Run a detection:
-\```bash
+```bash
 curl -X POST http://localhost:8000/detect \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"features": [0.1, 0.5, 1.2]}'
-\```
+```
 
 View audit logs:
-\```bash
+```bash
 curl http://localhost:8000/audit/logs \
   -H "Authorization: Bearer YOUR_TOKEN"
-\```
+```
+
+Check metrics:
+```bash
+curl http://localhost:8080/metrics
+```
 
 ---
 
 ## Architecture
 
-Network Flow Data → Ingestion Pipeline → XGBoost Model → FastAPI
-│
-Alert Pipeline
-├── VirusTotal
-├── Shodan
-├── Slack
-├── Wazuh
-└── Auto-containment
-│
-PostgreSQL audit log
+```mermaid
+flowchart TD
+    A[Network Flow Data] --> B[Ingestion Pipeline<br/>SHA-256 hash chaining]
+    B --> C[XGBoost Model<br/>ART adversarial hardening]
+    C --> D[FastAPI<br/>JWT auth<br/>Redis rate limiting<br/>Prometheus metrics]
+    D --> E[Alert Pipeline]
 
----
+    E --> F[VirusTotal enrichment]
+    E --> G[Shodan enrichment]
+    E --> H[Slack notification]
+    E --> I[Wazuh SIEM forwarding]
+    E --> J[Auto-containment<br/>Confidence > 95%]
+
+    J --> K[PostgreSQL audit log]
+```
 
 ## Troubleshooting
 
-**API won't start** — check `.env` vars are set and `make train` has been run
+**API won't start** 
+- Check all required `.env` vars are set
+- Ensure `make train` has been run and model files exist in detection/models/
+- Check logs: `make logs`
 
-**Grafana no data** — set Prometheus data source to `http://prometheus:9090`
+**Grafana no data**
+- Confirm Prometheus data source is set to `http://prometheus:9090`, if not set it to `http://prometheus:9090`
+- Ensure all containers are running: `make status`
 
-**Database errors** — run migrations: `psql -h localhost -U secopsai -d secopsai -f db/migrations/001_audit_logs.sql`
+**Database errors**
+- Run migrations manually: `psql -h localhost -U secopsai -d secopsai -f db/migrations/001_audit_logs.sql`
+
+**Redis unavailable**
+- Rate limiting will skip gracefully — this is expected behaviour
+- Check Redis container: `docker-compose ps`
 
 ---
 
@@ -117,6 +148,7 @@ PostgreSQL audit log
 - JWT tokens expire after 60 minutes
 - Rate limiting: 60 requests/minute per IP
 - All credentials via environment variables
+- Audit log writes to PostgreSQL with flat-file fallback
 - Model hardened against adversarial attacks using IBM ART
 
 
