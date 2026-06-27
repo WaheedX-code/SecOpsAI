@@ -1,9 +1,3 @@
-"""
-SecOpsAI — ML Detection Model
-XGBoost classifier trained on CICIDS 2017 features.
-Target: Beat rule baseline F1 macro of 0.1305 by 15% (must reach 0.2805+)
-"""
-
 import json
 import logging
 import warnings
