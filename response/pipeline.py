@@ -1,14 +1,10 @@
-"""
-SecOpsAI — Alert & Response Pipeline
-Detection fires → VirusTotal enrichment → Slack alert → Containment
-"""
-
 import json
 import logging
 import os
 import uuid
 from datetime import datetime
 from typing import Optional
+from response.wazuh_forwarder import forward_to_wazuh
 
 import requests
 from dotenv import load_dotenv
@@ -235,6 +231,19 @@ def process_alert(detection_response: dict) -> dict:
         "pipeline_id": pipeline_id
     }
     send_slack_alert(alert_payload, enrichment)
+
+    # Step 2b — Wazuh SIEM forwarding
+    forward_to_wazuh({
+        "prediction": prediction,
+        "confidence": confidence,
+        "threat_score": detection_response.get("threat_score", 0.0),
+        "is_malicious": is_malicious,
+        "source_ip": source_ip,
+        "request_id": detection_response.get("request_id", "unknown"),
+        "username": detection_response.get("username", "unknown"),
+        "latency_ms": detection_response.get("latency_ms", 0.0),
+        "pipeline_id": pipeline_id,
+    })
 
     # Step 3 — Containment (auto-block if confidence > 95%)
     containment = None
