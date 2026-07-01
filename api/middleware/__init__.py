@@ -23,12 +23,11 @@ def get_secret_key() -> str:
         )
     return key
 
-
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 security = HTTPBearer()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# Users loaded lazily — never at import time
+
 _USERS = None
 
 def get_users() -> dict:
