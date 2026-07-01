@@ -58,6 +58,27 @@ services:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
     volumes:
       - grafana_data:/var/lib/grafana
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  grafana-setup:
+    image: python:3.11-slim
+    volumes:
+      - ./scripts:/scripts
+      - ./.env:/app/.env
+    working_dir: /scripts
+    environment:
+      GRAFANA_PASSWORD: ${GRAFANA_PASSWORD}
+    command: >
+      sh -c "pip install requests python-dotenv -q && python setup_grafana.py"
+    depends_on:
+      grafana:
+        condition: service_healthy
+    restart: "no"
 
   nginx:
     image: nginx:alpine

@@ -1,7 +1,3 @@
-"""
-SecOpsAI — Grafana Setup Script
-"""
-
 import json
 import time
 import requests
@@ -10,9 +6,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-GRAFANA_URL = "http://localhost:3000"
+GRAFANA_URL = os.getenv("GRAFANA_URL", "http://grafana:3000")
 GRAFANA_USER = "admin"
-GRAFANA_PASSWORD = os.getenv("GRAFANA_PASSWORD", "secopsai123")
+GRAFANA_PASSWORD = os.getenv("GRAFANA_PASSWORD")
+if not GRAFANA_PASSWORD:
+    raise RuntimeError("GRAFANA_PASSWORD must be set in .env")
 AUTH = (GRAFANA_USER, GRAFANA_PASSWORD)
 
 
