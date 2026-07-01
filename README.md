@@ -128,8 +128,6 @@ flowchart TD
 
 SecOpsAI can forward alerts to your Wazuh manager via syslog. This is disabled by default.
 
----
-
 ### Setup
 
 1. Add these to your `.env`:
@@ -139,6 +137,7 @@ WAZUH_ENABLED=true
 WAZUH_HOST=your_wazuh_manager_ip
 WAZUH_PORT=514
 WAZUH_PROTOCOL=udp
+```
 
 ---
 
