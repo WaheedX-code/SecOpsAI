@@ -13,8 +13,17 @@ load_dotenv()
 
 logger = logging.getLogger("secopsai.auth")
 
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "secopsai-dev-secret-change-in-prod")
 ALGORITHM = "HS256"
+
+def get_secret_key() -> str:
+    key = os.getenv("JWT_SECRET_KEY")
+    if not key:
+        raise RuntimeError(
+            "JWT_SECRET_KEY must be set. Check your .env file or GitHub Secrets."
+        )
+    return key
+
+
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 security = HTTPBearer()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -65,7 +74,7 @@ def create_token(username: str, role: str) -> str:
         "exp": expire,
         "jti": str(uuid.uuid4())
     }
-    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+    return jwt.encode(payload, get_secret_key(), algorithm=ALGORITHM)
 
 
 def verify_token(
@@ -74,7 +83,7 @@ def verify_token(
     try:
         payload = jwt.decode(
             credentials.credentials,
-            SECRET_KEY,
+            get_secret_key(),
             algorithms=[ALGORITHM]
         )
         return payload
