@@ -175,6 +175,7 @@ WAZUH_PROTOCOL=udp
 | `make stop` | Stop all services |
 | `make logs` | Tail logs |
 | `make status` | Show service status |
+| `make stop && make start` | Restart the alert pipeline |
 
 ---
 
