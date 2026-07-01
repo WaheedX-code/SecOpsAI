@@ -34,6 +34,9 @@ make train
 
 # 4. Start all services
 make start
+
+#5. Restart the alert pipeline
+make stop && make start
 ```
 
 Services:
