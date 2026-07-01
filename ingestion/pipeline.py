@@ -1,8 +1,3 @@
-"""
-SecOpsAI — Telemetry Ingestion Pipeline
-Loads, validates, hashes, and streams network flow data
-"""
-
 import hashlib
 import json
 import logging
@@ -21,7 +16,7 @@ logging.basicConfig(
 logger = logging.getLogger("secopsai.ingestion")
 
 
-# ----- Hash Chaining (Tamper-Evident Logging) ───────────────────────────────────
+# ----- Hash Chaining (Tamper-Evident Logging) ──────
 
 class HashChain:
     """
@@ -93,7 +88,7 @@ class HashChain:
         return True
 
 
-# ─── Schema Validation ────────────────────────────────────────────────────────
+# ─── Schema Validation ───
 
 # Expected feature bounds — anything outside is flagged as potential adversarial injection
 FEATURE_BOUNDS = {
@@ -119,7 +114,7 @@ def validate_record(record: dict) -> tuple[bool, list[str]]:
     return len(violations) == 0, violations
 
 
-# ─── CICIDS 2017 Loader ───────────────────────────────────────────────────────
+# ─── CICIDS 2017 Loader ────
 
 CICIDS_LABEL_MAP = {
     "BENIGN": 0,
@@ -146,7 +141,7 @@ def load_cicids(data_dir: str = "data/raw/cicids2017") -> pd.DataFrame:
     dfs = []
     for f in csv_files:
         df = pd.read_csv(f, low_memory=False)
-        df.columns = df.columns.str.strip()  # CICIDS has trailing spaces in column names
+        df.columns = df.columns.str.strip() 
         dfs.append(df)
         logger.info(f"  Loaded {f.name}: {len(df):,} records")
 
@@ -215,7 +210,7 @@ class StreamProducer:
         return published, rejected
 
 
-# ─── Adversarial Injection Test ───────────────────────────────────────────────
+# ─── Adversarial Injection Test ─────
 
 def test_adversarial_injection(producer: StreamProducer):
     """
@@ -248,7 +243,7 @@ def test_adversarial_injection(producer: StreamProducer):
     logger.info("✅ Adversarial injection test PASSED — all malformed records rejected")
 
 
-# ─── Entry Point ─────────────────────────────────────────────────────────────
+# ─── Entry Point ─────
 
 if __name__ == "__main__":
     # Verify hash chain integrity on startup
