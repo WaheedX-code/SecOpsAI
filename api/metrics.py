@@ -40,6 +40,28 @@ inference_latency_p99 = Gauge(
     'p99 inference latency in milliseconds'
 )
 
+prediction_errors_total = Counter(
+    'secopsai_prediction_errors_total',
+    'Total number of failed predictions, by error type',
+    ['error_type', 'source']
+)
+
+unknown_features_total = Counter(
+    'secopsai_unknown_features_total',
+    'Total count of unrecognized feature names seen across requests',
+    ['source']
+)
+
+batch_predictions_total = Counter(
+    'secopsai_batch_predictions_total',
+    'Total number of batch prediction calls'
+)
+
+batch_size_total = Counter(
+    'secopsai_batch_size_total',
+    'Total number of rows processed across all batch predictions'
+)
+
 
 def metrics_endpoint():
     """Expose metrics for Prometheus scraping."""
@@ -47,4 +69,3 @@ def metrics_endpoint():
         content=generate_latest(),
         media_type="text/plain"
     )
-
