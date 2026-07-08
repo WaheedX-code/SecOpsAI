@@ -10,13 +10,15 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
 import redis
-from fastapi import Depends, FastAPI, HTTPException, Request, Security, status
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request, Security, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from response.pipeline import process_alert
+
 from api.audit import audit_log
 from api.metrics import metrics_endpoint
-from api.metrics_sink import PrometheusMetricsSink
+from api.prometheus_metrics_sink import PrometheusMetricsSink
 from api.middleware import (
     create_token,
     get_users,
@@ -225,6 +227,7 @@ def _audit_login(request: Request, username: str, *, success: bool) -> None:
 async def detect(
     request: Request,
     body: PredictionRequest,
+    background_tasks: BackgroundTasks,
     token: dict = Security(verify_token),
     detector: DetectionService = Depends(get_detector),
 ):
@@ -232,6 +235,13 @@ async def detect(
     Run threat detection on network flow features.
     Requires valid JWT token.
     p99 latency target: <200ms
+
+    On a malicious verdict, the alert/response pipeline (enrichment,
+    Slack notification, Wazuh forwarding, and — above the configured
+    confidence threshold — containment) is scheduled as a background
+    task so it never adds latency to this endpoint's response, and a
+    slow/unavailable third-party (VirusTotal, Shodan, Slack, Wazuh)
+    can't cause detection requests to hang or fail.
     """
     check_rate_limit(request)
 
@@ -245,8 +255,6 @@ async def detect(
         },
     )
 
-    # FeatureValidationError / ModelNotLoadedError / PredictionError propagate
-    # to the exception handlers registered above.
     result = detector.predict(body.features, context=context)
 
     audit_log("DETECTION", username=token["sub"], ip_address=body.source_ip, details={
@@ -257,6 +265,20 @@ async def detect(
         "model_version": result.model_version,
     })
 
+    if result.is_malicious:
+        background_tasks.add_task(
+            _run_alert_pipeline,
+            prediction=result.prediction,
+            confidence=result.confidence,
+            threat_score=result.threat_score,
+            is_malicious=result.is_malicious,
+            source_ip=body.source_ip,
+            request_id=result.request_id,
+            username=token["sub"],
+            model_version=result.model_version,
+            timestamp=result.timestamp.isoformat(),
+        )
+
     return PredictionResponse(
         prediction=result.prediction,
         confidence=result.confidence,
@@ -266,6 +288,27 @@ async def detect(
         request_id=result.request_id,
         model_version=result.model_version,
     )
+
+
+def _run_alert_pipeline(**detection_response) -> None:
+    """
+    Background-task entry point that hands a malicious detection off to
+    the response pipeline (enrichment -> Slack -> Wazuh -> containment).
+
+    Runs after the HTTP response has been sent. Any exception here is
+    caught and logged rather than propagated, since there is no request
+    left to fail — losing an alert-pipeline run should never crash the
+    worker or be silently swallowed without a trace in the logs.
+    """
+    try:
+        process_alert(detection_response)
+    except Exception:
+        logger.exception(
+            "alert_pipeline_failed request_id=%s prediction=%s",
+            detection_response.get("request_id"),
+            detection_response.get("prediction"),
+        )
+
 
 
 @app.get("/model/info", tags=["Model"])

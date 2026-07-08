@@ -19,11 +19,18 @@ class PredictionResponse(BaseModel):
     is_malicious: bool
     timestamp: datetime
     request_id: str
+    model_version: str
 
 
 class HealthResponse(BaseModel):
     status: str
+    ready: bool
+    model_loaded: bool
     model_version: str
+    feature_count: int
+    num_classes: int
+    normal_label: str
+    started_at: str
     uptime_seconds: float
 
 

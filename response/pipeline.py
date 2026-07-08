@@ -247,7 +247,7 @@ def process_alert(detection_response: dict) -> dict:
 
     # Step 3 — Containment (auto-block if confidence > 95%)
     containment = None
-    if confidence > 0.95 and source_ip != "unknown":
+    if confidence > 0.95 and source_ip and source_ip != "unknown":
         logger.info(f"High confidence ({confidence:.1%}) — triggering containment")
         containment = mock_firewall_block(
             ip=source_ip,

@@ -11,7 +11,7 @@ from detection.exceptions import (
     ModelNotLoadedError,
     PredictionError,
 )
-from detection.metrics import MetricsSink, NullMetricsSink
+from detection.metrics_sink import MetricsSink, NullMetricsSink
 from detection.model_loader import ModelLoader
 from detection.models import DetectionResult, PredictionContext
 
