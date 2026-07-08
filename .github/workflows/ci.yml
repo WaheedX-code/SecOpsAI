@@ -163,7 +163,7 @@ jobs:
           POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
           POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
-          POSTGRES_HOST: 
+          POSTGRES_HOST: localhost
         run: pytest tests/integration/ -v --tb=short
 
       - name: Check baseline metrics exist
@@ -252,7 +252,7 @@ jobs:
           print('Security scan passed — 0 HIGH severity issues')
           "
 
-     - name: Check for secrets in code
+      - name: Check for secrets in code
         run: |
           MATCHES=$(grep -rn "password\s*=\s*['\"][^'\"]\+['\"]" \
             --include="*.py" \
