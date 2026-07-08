@@ -216,7 +216,7 @@ jobs:
       - name: Install security tools
         run: pip install bandit safety
 
-     - name: Run Bandit security scan
+      - name: Run Bandit security scan
         run: |
           # Note: Bandit itself exits non-zero when it finds issues at or
           # above -ll (medium+) severity — we deliberately don't let that
