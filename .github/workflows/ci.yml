@@ -54,6 +54,7 @@ jobs:
             fastapi uvicorn pydantic python-jose passlib bcrypt \
             redis pytest httpx python-dotenv prometheus-client \
             adversarial-robustness-toolbox joblib psycopg2-binary
+          pip install requests
 
       - name: Run database migrations
         env:
