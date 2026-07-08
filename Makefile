@@ -5,6 +5,12 @@ VENV := venv
 PYTHON := $(VENV)/bin/python
 PIP := $(VENV)/bin/pip
 
+# Some systems only have the older standalone `docker-compose` binary,
+# others only have the newer `docker compose` plugin. Detect which one is
+# actually available so `make start`/`stop`/`logs`/`status` work either way,
+# instead of hardcoding the newer syntax and failing on older installs.
+DOCKER_COMPOSE := $(shell command -v docker-compose >/dev/null 2>&1 && echo "docker-compose" || echo "docker compose")
+
 # ─── Default ──────────────────────────────────────────────────────────────────
 help:
 	@echo ""
@@ -50,7 +56,7 @@ test:
 # ─── Infrastructure ───────────────────────────────────────────────────────────
 start:
 	@echo "[*] Starting infrastructure..."
-	docker compose up -d
+	$(DOCKER_COMPOSE) up -d
 	@echo "[*] Waiting for services to be ready..."
 	@sleep 5
 	@echo "[*] Starting FastAPI server..."
@@ -64,18 +70,18 @@ start:
 
 stop:
 	@echo "[*] Stopping services..."
-	docker compose down
+	$(DOCKER_COMPOSE) down
 	@pkill -f "uvicorn api.main:app" || true
 	@echo "[✓] All services stopped"
 
 restart: stop start
 
 logs:
-	docker compose logs -f
+	$(DOCKER_COMPOSE) logs -f
 
 status:
 	@echo "[*] Docker services:"
-	docker compose ps
+	$(DOCKER_COMPOSE) ps
 	@echo ""
 	@echo "[*] API:"
 	@curl -s http://localhost:8000/health | python3 -m json.tool || echo "API not running"

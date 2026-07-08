@@ -149,7 +149,7 @@ jobs:
           ANALYST_PASSWORD: ${{ secrets.ANALYST_PASSWORD }}
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
           POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
-          PSOTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
           POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
           POSTGRES_HOST: localhost
         run: pytest tests/ -v --tb=short
@@ -161,7 +161,7 @@ jobs:
           ANALYST_PASSWORD: ${{ secrets.ANALYST_PASSWORD }}
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
           POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
-          PSOTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
           POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
           POSTGRES_HOST: 
         run: pytest tests/integration/ -v --tb=short
@@ -216,34 +216,58 @@ jobs:
       - name: Install security tools
         run: pip install bandit safety
 
-      - name: Run Bandit security scan
+     - name: Run Bandit security scan
         run: |
+          # Note: Bandit itself exits non-zero when it finds issues at or
+          # above -ll (medium+) severity — we deliberately don't let that
+          # exit code kill the step immediately, because we want the
+          # Python block below to run regardless and make the actual
+          # pass/fail decision based on HIGH severity specifically.
+          # "|| true" here is intentional and scoped to *this* command;
+          # the Python check below is what enforces the real gate, and it
+          # will exit 1 (failing the job) if the report is missing,
+          # malformed, or contains any HIGH severity finding.
           bandit -r api/ detection/ ingestion/ response/ \
             -x tests/ \
             -ll \
             --format json \
             -o bandit-report.json || true
+
           python3 -c "
           import json
-          with open('bandit-report.json') as f:
-            report = json.load(f)
+          import sys
+
+          try:
+              with open('bandit-report.json') as f:
+                  report = json.load(f)
+          except (FileNotFoundError, json.JSONDecodeError) as exc:
+              print(f'FATAL: bandit-report.json missing or unreadable: {exc}')
+              sys.exit(1)
+
           high = [i for i in report['results'] if i['issue_severity'] == 'HIGH']
           if high:
-            for issue in high:
-              print(f'HIGH: {issue[\"issue_text\"]} — {issue[\"filename\"]}:{issue[\"line_number\"]}')
-            exit(1)
-          print(f'Security scan passed — 0 HIGH severity issues')
+              for issue in high:
+                  print(f'HIGH: {issue[\"issue_text\"]} — {issue[\"filename\"]}:{issue[\"line_number\"]}')
+              sys.exit(1)
+          print('Security scan passed — 0 HIGH severity issues')
           "
 
-      - name: Check for secrets in code
+     - name: Check for secrets in code
         run: |
-          grep -rn "password\s*=\s*['\"][^'\"]\+['\"]" \
+          MATCHES=$(grep -rn "password\s*=\s*['\"][^'\"]\+['\"]" \
             --include="*.py" \
             --exclude-dir=".git" \
             --exclude-dir="venv" \
             --exclude-dir="tests" \
-            . || true
-          echo "Secret scan complete"
+            . || true)
+
+          if [ -n "$MATCHES" ]; then
+            echo "FATAL: possible hardcoded credential(s) found:"
+            echo "$MATCHES"
+            exit 1
+          fi
+          echo "Secret scan complete — no hardcoded credentials found"
+
 
   docker:
     name: Docker Build Check
